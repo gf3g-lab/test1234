@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>학생 출결 관리 시스템</title>
+    <meta name="description" content="조퇴·지각·결석 신청 및 통계 시각화 시스템">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+    <!-- ══ 헤더 ══ -->
+    <header class="site-header">
+        <div class="header-inner">
+            <div class="logo-group">
+                <span class="logo-icon">🏫</span>
+                <div>
+                    <h1 class="logo-title">출결 관리 시스템</h1>
+                    <p class="logo-sub">조퇴 · 지각 · 결석 통합 관리</p>
+                </div>
+            </div>
+            <div class="header-time-box">
+                <span id="hdr-time" class="hdr-time">--:--:--</span>
+                <span id="hdr-date" class="hdr-date">--월 --일</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ══ 메인 탭 ══ -->
+    <nav class="main-tabs">
+        <button class="main-tab active" data-page="leave">
+            <span class="tab-emoji">🚶</span><span class="tab-label">조퇴</span>
+        </button>
+        <button class="main-tab" data-page="late">
+            <span class="tab-emoji">⏰</span><span class="tab-label">지각</span>
+        </button>
+        <button class="main-tab" data-page="absent">
+            <span class="tab-emoji">📅</span><span class="tab-label">결석</span>
+        </button>
+        <button class="main-tab" data-page="stats">
+            <span class="tab-emoji">📊</span><span class="tab-label">통계</span>
+        </button>
+    </nav>
+
+    <!-- ════════════════════════════════
+         1장 · 조퇴 신청
+    ════════════════════════════════ -->
+    <section id="page-leave" class="page active">
+
+        <!-- 서브탭 -->
+        <div class="sub-tabs">
+            <button class="sub-tab active" data-sub="leave-student">🎒 학생 신청</button>
+            <button class="sub-tab" data-sub="leave-teacher">📋 선생님 관리</button>
+        </div>
+
+        <!-- 학생 신청 -->
+        <div id="leave-student" class="sub-view active">
+            <div class="card accent-leave">
+                <div class="card-head">
+                    <span class="card-emoji">🚶</span>
+                    <div>
+                        <h2>조퇴 신청</h2>
+                        <p class="sub-desc">선생님께 조퇴를 신청합니다.</p>
+                    </div>
+                </div>
+                <form id="form-leave">
+                    <div class="fg">
+                        <label for="leave-name">이름</label>
+                        <input type="text" id="leave-name" placeholder="홍길동" required>
+                    </div>
+                    <div class="fg">
+                        <label for="leave-class">학년 · 반 · 번호</label>
+                        <input type="text" id="leave-class" placeholder="2학년 3반 15번" required>
+                    </div>
+                    <div class="fg">
+                        <label for="leave-reason">조퇴 사유</label>
+                        <select id="leave-reason" required>
+                            <option value="" disabled selected>사유를 선택하세요</option>
+                            <option value="병원 진료">🏥 병원 진료</option>
+                            <option value="몸 상태 불량">🤒 몸 상태 불량</option>
+                            <option value="가정 사정">🏠 가정 사정</option>
+                            <option value="경조사">💐 경조사</option>
+                            <option value="기타">📝 기타</option>
+                        </select>
+                    </div>
+                    <div class="fg" id="leave-other-fg" style="display:none">
+                        <label for="leave-other">직접 입력</label>
+                        <input type="text" id="leave-other" placeholder="사유를 입력해 주세요" maxlength="50">
+                    </div>
+                    <div class="fg">
+                        <label for="leave-time">출발 예정 시간</label>
+                        <input type="time" id="leave-time" required>
+                    </div>
+                    <button type="submit" class="submit-btn btn-leave">🚶 조퇴 신청하기</button>
+                </form>
+            </div>
+            <div id="leave-pass-wrap" style="display:none;margin-top:12px">
+                <button id="leave-pass-btn" class="sub-action-btn btn-leave-outline">
+                    📄 내 조퇴증 보기
+                </button>
+            </div>
+        </div>
+
+        <!-- 선생님 관리 -->
+        <div id="leave-teacher" class="sub-view">
+            <div class="card">
+                <div class="card-head">
+                    <span class="card-emoji">📋</span>
+                    <div>
+                        <h2>조퇴 신청 관리</h2>
+                        <p class="sub-desc">학생들의 조퇴 신청을 승인합니다.</p>
+                    </div>
+                </div>
+                <div class="req-list" id="leave-req-list">
+                    <div class="empty-msg"><span>🚶</span><p>대기 중인 신청이 없습니다.</p></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════════════════════
+         2장 · 지각 신청
+    ════════════════════════════════ -->
+    <section id="page-late" class="page">
+
+        <div class="sub-tabs">
+            <button class="sub-tab active" data-sub="late-student">🎒 학생 신고</button>
+            <button class="sub-tab" data-sub="late-teacher">📋 선생님 관리</button>
+        </div>
+
+        <div id="late-student" class="sub-view active">
+            <div class="card accent-late">
+                <div class="card-head">
+                    <span class="card-emoji">⏰</span>
+                    <div>
+                        <h2>지각 신고</h2>
+                        <p class="sub-desc">선생님께 지각 사실을 신고합니다.</p>
+                    </div>
+                </div>
+                <form id="form-late">
+                    <div class="fg">
+                        <label for="late-name">이름</label>
+                        <input type="text" id="late-name" placeholder="홍길동" required>
+                    </div>
+                    <div class="fg">
+                        <label for="late-class">학년 · 반 · 번호</label>
+                        <input type="text" id="late-class" placeholder="2학년 3반 15번" required>
+                    </div>
+                    <div class="fg">
+                        <label for="late-reason">지각 사유</label>
+                        <select id="late-reason" required>
+                            <option value="" disabled selected>사유를 선택하세요</option>
+                            <option value="교통 혼잡">🚌 교통 혼잡 (버스·지하철 지연)</option>
+                            <option value="몸 상태 불량">🤒 몸 상태 불량</option>
+                            <option value="가정 사정">🏠 가정 사정</option>
+                            <option value="기타">📝 기타</option>
+                        </select>
+                    </div>
+                    <div class="fg" id="late-other-fg" style="display:none">
+                        <label for="late-other">직접 입력</label>
+                        <input type="text" id="late-other" placeholder="사유를 입력해 주세요" maxlength="50">
+                    </div>
+                    <div class="fg">
+                        <label for="late-time">등교 시간</label>
+                        <input type="time" id="late-time" required>
+                    </div>
+                    <button type="submit" class="submit-btn btn-late">⏰ 지각 신고하기</button>
+                </form>
+            </div>
+            <div id="late-pass-wrap" style="display:none;margin-top:12px">
+                <button id="late-pass-btn" class="sub-action-btn btn-late-outline">
+                    📄 내 지각 확인증 보기
+                </button>
+            </div>
+        </div>
+
+        <div id="late-teacher" class="sub-view">
+            <div class="card">
+                <div class="card-head">
+                    <span class="card-emoji">📋</span>
+                    <div>
+                        <h2>지각 신고 관리</h2>
+                        <p class="sub-desc">학생들의 지각 신고를 확인합니다.</p>
+                    </div>
+                </div>
+                <div class="req-list" id="late-req-list">
+                    <div class="empty-msg"><span>⏰</span><p>대기 중인 신고가 없습니다.</p></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════════════════════
+         3장 · 결석 신청
+    ════════════════════════════════ -->
+    <section id="page-absent" class="page">
+
+        <div class="sub-tabs">
+            <button class="sub-tab active" data-sub="absent-student">🎒 학생 신청</button>
+            <button class="sub-tab" data-sub="absent-teacher">📋 선생님 관리</button>
+        </div>
+
+        <div id="absent-student" class="sub-view active">
+            <div class="card accent-absent">
+                <div class="card-head">
+                    <span class="card-emoji">📅</span>
+                    <div>
+                        <h2>결석 신청</h2>
+                        <p class="sub-desc">선생님께 결석을 신청합니다.</p>
+                    </div>
+                </div>
+                <form id="form-absent">
+                    <div class="fg">
+                        <label for="absent-name">이름</label>
+                        <input type="text" id="absent-name" placeholder="홍길동" required>
+                    </div>
+                    <div class="fg">
+                        <label for="absent-class">학년 · 반 · 번호</label>
+                        <input type="text" id="absent-class" placeholder="2학년 3반 15번" required>
+                    </div>
+                    <div class="fg">
+                        <label for="absent-reason">결석 사유</label>
+                        <select id="absent-reason" required>
+                            <option value="" disabled selected>사유를 선택하세요</option>
+                            <option value="질병">🤒 질병 (발열·구토 등)</option>
+                            <option value="병원 입원">🏥 병원 입원</option>
+                            <option value="가정 사정">🏠 가정 사정</option>
+                            <option value="경조사">💐 경조사 (부모님 관련)</option>
+                            <option value="기타">📝 기타</option>
+                        </select>
+                    </div>
+                    <div class="fg" id="absent-other-fg" style="display:none">
+                        <label for="absent-other">직접 입력</label>
+                        <input type="text" id="absent-other" placeholder="사유를 입력해 주세요" maxlength="50">
+                    </div>
+                    <div class="fg-row">
+                        <div class="fg">
+                            <label for="absent-from">결석 시작일</label>
+                            <input type="date" id="absent-from" required>
+                        </div>
+                        <div class="fg">
+                            <label for="absent-to">결석 종료일</label>
+                            <input type="date" id="absent-to" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="submit-btn btn-absent">📅 결석 신청하기</button>
+                </form>
+            </div>
+            <div id="absent-pass-wrap" style="display:none;margin-top:12px">
+                <button id="absent-pass-btn" class="sub-action-btn btn-absent-outline">
+                    📄 내 결석 확인증 보기
+                </button>
+            </div>
+        </div>
+
+        <div id="absent-teacher" class="sub-view">
+            <div class="card">
+                <div class="card-head">
+                    <span class="card-emoji">📋</span>
+                    <div>
+                        <h2>결석 신청 관리</h2>
+                        <p class="sub-desc">학생들의 결석 신청을 승인합니다.</p>
+                    </div>
+                </div>
+                <div class="req-list" id="absent-req-list">
+                    <div class="empty-msg"><span>📅</span><p>대기 중인 신청이 없습니다.</p></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════════════════════
+         4장 · 통계
+    ════════════════════════════════ -->
+    <section id="page-stats" class="page">
+
+        <!-- 요약 카드 3종 -->
+        <div class="summary-cards">
+            <div class="sum-card sc-leave">
+                <span class="sc-icon">🚶</span>
+                <div class="sc-body">
+                    <div class="sc-num" id="sc-leave">0</div>
+                    <div class="sc-lbl">이번 달 조퇴</div>
+                </div>
+            </div>
+            <div class="sum-card sc-late">
+                <span class="sc-icon">⏰</span>
+                <div class="sc-body">
+                    <div class="sc-num" id="sc-late">0</div>
+                    <div class="sc-lbl">이번 달 지각</div>
+                </div>
+            </div>
+            <div class="sum-card sc-absent">
+                <span class="sc-icon">📅</span>
+                <div class="sc-body">
+                    <div class="sc-num" id="sc-absent">0</div>
+                    <div class="sc-lbl">이번 달 결석</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 월별 막대 차트 -->
+        <div class="chart-card">
+            <div class="chart-title">
+                <span>📊</span>
+                <span>월별 출결 현황</span>
+                <span class="chart-year" id="chart-year-label"></span>
+            </div>
+            <div class="chart-legend">
+                <span class="leg-item"><span class="leg-dot leave-dot"></span>조퇴</span>
+                <span class="leg-item"><span class="leg-dot late-dot"></span>지각</span>
+                <span class="leg-item"><span class="leg-dot absent-dot"></span>결석</span>
+            </div>
+            <div class="chart-wrap">
+                <canvas id="monthly-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- 도넛 차트 (올해 비율) -->
+        <div class="chart-card">
+            <div class="chart-title">
+                <span>🍩</span>
+                <span>연간 출결 비율</span>
+                <span class="chart-year" id="chart-year-label2"></span>
+            </div>
+            <div class="donut-row">
+                <div class="chart-wrap-sm">
+                    <canvas id="donut-chart"></canvas>
+                </div>
+                <div class="donut-legend" id="donut-legend"></div>
+            </div>
+        </div>
+
+        <!-- 연간 누적 라인 차트 -->
+        <div class="chart-card">
+            <div class="chart-title">
+                <span>📈</span>
+                <span>월별 누적 추이</span>
+            </div>
+            <div class="chart-wrap">
+                <canvas id="line-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- 상세 테이블 -->
+        <div class="chart-card">
+            <div class="chart-title"><span>📋</span><span>월별 상세 내역</span></div>
+            <div class="table-wrap">
+                <table class="stats-table" id="stats-table">
+                    <thead>
+                        <tr>
+                            <th>월</th>
+                            <th>🚶 조퇴</th>
+                            <th>⏰ 지각</th>
+                            <th>📅 결석</th>
+                            <th>합계</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stats-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 샘플 데이터 버튼 -->
+        <div style="text-align:center;margin-top:8px">
+            <button id="load-sample-btn" class="sample-btn">🎲 샘플 데이터 불러오기</button>
+        </div>
+    </section>
+
+</div><!-- /#app -->
+
+<!-- ══ 디지털 확인증 오버레이 ══ -->
+<div id="pass-overlay" class="pass-overlay hidden">
+    <div class="pass-container">
+        <button id="pass-close-btn" class="close-btn" aria-label="닫기">✕</button>
+        <div class="pass-card" id="pass-card">
+            <div class="pass-header" id="pass-header">
+                <div class="pass-school-icon" id="pass-icon">🚶</div>
+                <h3 id="pass-title">확인증</h3>
+                <div class="pass-badge">승인됨</div>
+            </div>
+            <div class="pass-body">
+                <div class="info-row">
+                    <span class="label">이름</span>
+                    <span class="value" id="p-name">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">소속</span>
+                    <span class="value" id="p-class">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">사유</span>
+                    <span class="value" id="p-reason">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="label" id="p-time-label">시간</span>
+                    <span class="value" id="p-time">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">날짜</span>
+                    <span class="value" id="p-date">-</span>
+                </div>
+            </div>
+            <div class="pass-footer">
+                <div class="live-time-container">
+                    <div class="pulsing-dot"></div>
+                    <div id="live-clock" class="live-time">00:00:00</div>
+                </div>
+                <p class="verify-text" id="p-verify-text">위 학생의 조퇴를 허락합니다.</p>
+                <div class="animated-wave"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 토스트 -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
